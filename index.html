@@ -1,0 +1,988 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="theme-color" content="#0077be" />
+  <title>AeroPlayer — Frutiger Aero Spotify</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, Helvetica, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      background: #0077be;
+      overflow: hidden;
+    }
+
+    body {
+      min-height: 100dvh;
+      height: 100dvh;
+      background: linear-gradient(180deg, #0077be 0%, #38b6ff 45%, #7ed957 82%, #4caf50 100%);
+      color: #052c47;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Floating Aero Bubbles */
+    .bubbles {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+    }
+    .bubble {
+      position: absolute;
+      bottom: -80px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.15) 60%, rgba(0, 210, 255, 0.4));
+      box-shadow: inset 0 0 10px rgba(255, 255, 255, 0.8), 0 4px 12px rgba(0, 80, 140, 0.2);
+      animation: floatUp linear infinite;
+    }
+    @keyframes floatUp {
+      0% { transform: translateY(0) scale(1); opacity: 0; }
+      15% { opacity: 0.85; }
+      100% { transform: translateY(-115vh) scale(1.15); opacity: 0; }
+    }
+
+    /* Glossy Button Base */
+    .aero-btn {
+      cursor: pointer;
+      border: 1px solid rgba(255, 255, 255, 0.92);
+      border-radius: 999px;
+      background: linear-gradient(180deg, #ffffff 0%, #c2ecff 48%, #7cd4ff 52%, #b8ebff 100%);
+      box-shadow: 0 3px 8px rgba(0, 80, 140, 0.22), inset 0 1px 1px #ffffff;
+      color: #05385b;
+      font-weight: 700;
+      transition: transform 0.12s ease, filter 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .aero-btn:active {
+      transform: scale(0.95);
+      filter: brightness(0.94);
+    }
+    .aero-btn.active-toggle {
+      background: linear-gradient(180deg, #d8ff9e 0%, #6ee815 48%, #3fb500 52%, #8ef538 100%);
+      color: #063800;
+      box-shadow: 0 0 12px rgba(100, 230, 20, 0.75), inset 0 1px 1px #fff;
+    }
+
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.2); border-radius: 10px; }
+    ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.75); border-radius: 10px; }
+
+    /* Main Container */
+    .app-shell {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      height: 100dvh;
+      max-width: 960px;
+      width: 100%;
+      margin: 0 auto;
+      padding-top: calc(10px + env(safe-area-inset-top));
+      padding-bottom: calc(10px + env(safe-area-inset-bottom));
+      padding-left: calc(12px + env(safe-area-inset-left));
+      padding-right: calc(12px + env(safe-area-inset-right));
+      gap: 10px;
+    }
+
+    /* =========================================
+       MODE 1: DEFAULT FULL NOW-PLAYING WINDOW
+       ========================================= */
+    .full-player-wrap {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 0;
+    }
+
+    .aero-window {
+      position: relative;
+      width: 100%;
+      max-width: 420px;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.75) 0%, rgba(220, 245, 255, 0.58) 50%, rgba(190, 235, 255, 0.68) 100%);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      border-radius: 24px;
+      border: 1.5px solid rgba(255, 255, 255, 0.95);
+      box-shadow: 0 20px 45px rgba(0, 55, 100, 0.32), inset 0 1px 2px #fff;
+      padding: 18px;
+      overflow: hidden;
+    }
+
+    .aero-window::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 40%;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.65) 0%, rgba(255, 255, 255, 0.05) 100%);
+      border-radius: 22px 22px 50% 50% / 22px 22px 18px 18px;
+      pointer-events: none;
+    }
+
+    .title-bar {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+
+    .title-text {
+      font-weight: 800;
+      font-size: 15px;
+      color: #06395c;
+      text-shadow: 0 1px 0 rgba(255, 255, 255, 0.9);
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .status-dot {
+      width: 11px;
+      height: 11px;
+      border-radius: 50%;
+      background: #9e9e9e;
+      box-shadow: inset 0 1px 2px #fff;
+      flex-shrink: 0;
+    }
+    .status-dot.connected {
+      background: radial-gradient(circle at 35% 35%, #b9ff66, #38b000);
+      box-shadow: 0 0 9px #52d600;
+    }
+
+    .top-btns {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .pill-btn {
+      padding: 6px 12px;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .x-toggle-btn {
+      width: 30px;
+      height: 30px;
+      font-size: 14px;
+      font-weight: 800;
+      background: linear-gradient(180deg, #ffd6d6 0%, #ff7a7a 48%, #e63946 52%, #ff9999 100%);
+      color: #fff;
+      text-shadow: 0 1px 2px rgba(100, 0, 0, 0.5);
+    }
+
+    .album-frame {
+      position: relative;
+      z-index: 2;
+      width: 220px;
+      height: 220px;
+      margin: 4px auto 16px;
+      border-radius: 18px;
+      padding: 8px;
+      background: linear-gradient(145deg, rgba(255,255,255,0.92), rgba(180,235,255,0.55));
+      box-shadow: 0 12px 24px rgba(0, 65, 115, 0.28), inset 0 1px 2px #fff;
+      border: 1px solid #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .album-placeholder {
+      width: 100%;
+      height: 100%;
+      border-radius: 12px;
+      background: radial-gradient(circle at 30% 30%, #a8ebff, #0088cc 65%, #004e7a 100%);
+      box-shadow: inset 0 2px 10px rgba(255,255,255,0.8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 64px;
+      color: rgba(255,255,255,0.92);
+      text-shadow: 0 4px 12px rgba(0,50,100,0.4);
+    }
+    .album-frame img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 12px;
+      display: none;
+    }
+
+    .track-info {
+      position: relative;
+      z-index: 2;
+      text-align: center;
+      margin-bottom: 14px;
+    }
+    .track-title {
+      font-size: 19px;
+      font-weight: 800;
+      color: #042c47;
+      text-shadow: 0 1px 0 rgba(255, 255, 255, 0.85);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .track-artist {
+      font-size: 14px;
+      font-weight: 600;
+      color: #165b85;
+      margin-top: 3px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .progress-wrap {
+      position: relative;
+      z-index: 2;
+      margin-bottom: 16px;
+    }
+    .progress-bar {
+      width: 100%;
+      height: 11px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.72);
+      border: 1px solid #fff;
+      box-shadow: inset 0 2px 4px rgba(0, 60, 110, 0.25);
+      overflow: hidden;
+      cursor: pointer;
+    }
+    .progress-fill {
+      height: 100%;
+      width: 0%;
+      border-radius: 999px;
+      background: linear-gradient(180deg, #b8ff70 0%, #52d600 50%, #3aa800 51%, #7ae82e 100%);
+      box-shadow: 0 0 8px rgba(82, 214, 0, 0.7);
+      transition: width 0.25s linear;
+    }
+    .time-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      font-weight: 700;
+      color: #0e4a70;
+      margin-top: 5px;
+    }
+
+    .controls {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 14px;
+    }
+    .ctrl-btn {
+      width: 44px;
+      height: 44px;
+      font-size: 17px;
+    }
+    .play-orb {
+      width: 62px;
+      height: 62px;
+      font-size: 23px;
+      color: #ffffff;
+      text-shadow: 0 1px 3px rgba(0, 60, 120, 0.6);
+      background: linear-gradient(180deg, #8ce3ff 0%, #1ea7fd 49%, #0077e6 51%, #38c6ff 100%);
+      box-shadow: 0 6px 16px rgba(0, 110, 220, 0.45), inset 0 2px 3px #fff;
+    }
+
+    /* =========================================
+       MODE 2: LIKED SONGS + BOTTOM MINI BAR
+       ========================================= */
+    .liked-view-wrap {
+      display: none;
+      flex-direction: column;
+      flex: 1;
+      min-height: 0;
+      gap: 10px;
+    }
+
+    .liked-panel {
+      flex: 1;
+      min-height: 0;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.76), rgba(215, 245, 255, 0.6));
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      border-radius: 22px;
+      border: 1.5px solid rgba(255, 255, 255, 0.92);
+      box-shadow: 0 12px 30px rgba(0, 55, 100, 0.25), inset 0 1px 2px #fff;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .liked-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding-bottom: 10px;
+      margin-bottom: 10px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.75);
+      flex-shrink: 0;
+    }
+
+    .liked-title-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .liked-heart-badge {
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      background: linear-gradient(180deg, #8ce3ff, #0077e6);
+      color: #fff;
+      font-size: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid #fff;
+      box-shadow: 0 4px 10px rgba(0, 90, 170, 0.25);
+    }
+
+    .track-list {
+      flex: 1;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .track-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 10px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.55);
+      border: 1px solid rgba(255, 255, 255, 0.85);
+      cursor: pointer;
+    }
+    .track-row:hover, .track-row:active {
+      background: rgba(255, 255, 255, 0.92);
+    }
+    .track-num {
+      width: 22px;
+      text-align: center;
+      font-size: 12px;
+      font-weight: 700;
+      color: #165b85;
+      flex-shrink: 0;
+    }
+    .track-thumb {
+      width: 42px;
+      height: 42px;
+      border-radius: 8px;
+      background: #7cd4ff;
+      object-fit: cover;
+      flex-shrink: 0;
+    }
+    .track-details {
+      flex: 1;
+      min-width: 0;
+    }
+    .t-name {
+      font-size: 14px;
+      font-weight: 700;
+      color: #042c47;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .t-art {
+      font-size: 12px;
+      color: #165b85;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .t-dur {
+      font-size: 12px;
+      font-weight: 700;
+      color: #0e4a70;
+      flex-shrink: 0;
+    }
+
+    /* Long Horizontal Bottom Rectangle Player */
+    .bottom-rect-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 9px 12px;
+      border-radius: 18px;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.85), rgba(195, 238, 255, 0.75));
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1.5px solid rgba(255, 255, 255, 0.95);
+      box-shadow: 0 -4px 20px rgba(0, 60, 110, 0.25), inset 0 1px 2px #fff;
+      flex-shrink: 0;
+    }
+
+    .mini-left {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      flex: 1;
+      min-width: 0;
+      cursor: pointer;
+    }
+    .mini-art {
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      background: radial-gradient(circle at 30% 30%, #a8ebff, #0088cc);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-size: 18px;
+      overflow: hidden;
+      flex-shrink: 0;
+      border: 1px solid #fff;
+    }
+    .mini-art img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: none;
+    }
+    .mini-info {
+      min-width: 0;
+      flex: 1;
+    }
+    .mini-title {
+      font-size: 13px;
+      font-weight: 800;
+      color: #042c47;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .mini-artist {
+      font-size: 11px;
+      font-weight: 600;
+      color: #165b85;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .mini-controls {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+    .m-btn {
+      width: 34px;
+      height: 34px;
+      font-size: 14px;
+    }
+    .m-play-orb {
+      width: 42px;
+      height: 42px;
+      font-size: 18px;
+      color: #fff;
+      background: linear-gradient(180deg, #8ce3ff 0%, #1ea7fd 49%, #0077e6 51%, #38c6ff 100%);
+      box-shadow: 0 4px 10px rgba(0, 110, 220, 0.4), inset 0 1px 2px #fff;
+    }
+  </style>
+</head>
+<body>
+  <div class="bubbles" id="bubbles"></div>
+
+  <div class="app-shell">
+    <!-- ==========================================
+         DEFAULT VIEW: NOW PLAYING CARD ONLY
+         ========================================== -->
+    <div class="full-player-wrap" id="fullPlayerView">
+      <div class="aero-window">
+        <div class="title-bar">
+          <div class="title-text">
+            <span class="status-dot" id="statusDotFull"></span>
+            <span>AeroPlayer</span>
+          </div>
+          <div class="top-btns">
+            <button type="button" class="aero-btn pill-btn" id="authBtn">Connect</button>
+            <button type="button" class="aero-btn x-toggle-btn" id="openLikedBtn" title="Open Liked Songs">✕</button>
+          </div>
+        </div>
+
+        <div class="album-frame">
+          <div class="album-placeholder" id="albumPlaceholderFull">♫</div>
+          <img id="albumArtFull" alt="Album Art" />
+        </div>
+
+        <div class="track-info">
+          <div class="track-title" id="trackTitleFull">Not Playing</div>
+          <div class="track-artist" id="trackArtistFull">Tap Connect or ✕ for Liked Songs</div>
+        </div>
+
+        <div class="progress-wrap">
+          <div class="progress-bar" id="progressBar">
+            <div class="progress-fill" id="progressFill"></div>
+          </div>
+          <div class="time-row">
+            <span id="curTime">0:00</span>
+            <span id="durTime">0:00</span>
+          </div>
+        </div>
+
+        <div class="controls">
+          <button type="button" class="aero-btn ctrl-btn" id="shuffleBtnFull" title="Shuffle">🔀</button>
+          <button type="button" class="aero-btn ctrl-btn" id="prevBtnFull" title="Previous">⏮</button>
+          <button type="button" class="aero-btn ctrl-btn play-orb" id="playBtnFull" title="Play/Pause">▶</button>
+          <button type="button" class="aero-btn ctrl-btn" id="nextBtnFull" title="Next">⏭</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==========================================
+         SPLIT VIEW: LIKED SONGS + BOTTOM RECT BAR
+         ========================================== -->
+    <div class="liked-view-wrap" id="likedSongsView">
+      <div class="liked-panel">
+        <div class="liked-header">
+          <div class="liked-title-group">
+            <div class="liked-heart-badge">♥</div>
+            <div>
+              <div style="font-size:17px;font-weight:800;color:#042c47;">Liked Songs</div>
+              <div style="font-size:11px;color:#165b85;" id="likedSubtitle">Tap any song to play</div>
+            </div>
+          </div>
+          <div class="top-btns">
+            <button type="button" class="aero-btn pill-btn" id="refreshLikedBtn">↻</button>
+            <button type="button" class="aero-btn pill-btn" id="backToFullBtn">▲ Player</button>
+          </div>
+        </div>
+
+        <div class="track-list" id="trackList">
+          <div style="font-size:13px;color:#165b85;padding:12px;text-align:center;">
+            Loading your Liked Songs...
+          </div>
+        </div>
+      </div>
+
+      <!-- Long Horizontal Bottom Rectangle Player -->
+      <div class="bottom-rect-bar">
+        <div class="mini-left" id="miniExpandArea" title="Tap to expand full player">
+          <div class="mini-art">
+            <span id="albumPlaceholderMini">♫</span>
+            <img id="albumArtMini" alt="Cover" />
+          </div>
+          <div class="mini-info">
+            <div class="mini-title" id="trackTitleMini">Not Playing</div>
+            <div class="mini-artist" id="trackArtistMini">Tap a song above</div>
+          </div>
+        </div>
+
+        <div class="mini-controls">
+          <button type="button" class="aero-btn m-btn" id="shuffleBtnMini" title="Shuffle">🔀</button>
+          <button type="button" class="aero-btn m-btn" id="prevBtnMini" title="Previous">⏮</button>
+          <button type="button" class="aero-btn m-btn m-play-orb" id="playBtnMini" title="Play/Pause">▶</button>
+          <button type="button" class="aero-btn m-btn" id="nextBtnMini" title="Next">⏭</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://sdk.scdn.co/spotify-player.js"></script>
+  <script>
+    // ==========================================
+    // PASTE YOUR SPOTIFY CLIENT ID BELOW:
+    const CLIENT_ID = "YOUR_CLIENT_ID_HERE";
+    // ==========================================
+
+    const REDIRECT_URI = window.location.origin + window.location.pathname;
+    const SCOPES = [
+      "streaming",
+      "user-read-email",
+      "user-read-private",
+      "user-modify-playback-state",
+      "user-read-playback-state",
+      "user-library-read"
+    ].join(" ");
+
+    // Floating Bubbles
+    const bubbleContainer = document.getElementById("bubbles");
+    for (let i = 0; i < 16; i++) {
+      const b = document.createElement("div");
+      b.className = "bubble";
+      const size = Math.random() * 42 + 14;
+      b.style.width = size + "px";
+      b.style.height = size + "px";
+      b.style.left = Math.random() * 100 + "vw";
+      b.style.animationDuration = Math.random() * 10 + 8 + "s";
+      b.style.animationDelay = Math.random() * 8 + "s";
+      bubbleContainer.appendChild(b);
+    }
+
+    // View Switching (Default Card <-> Liked Songs + Bottom Rectangle)
+    const fullPlayerView = document.getElementById("fullPlayerView");
+    const likedSongsView = document.getElementById("likedSongsView");
+    let likedLoaded = false;
+
+    function openLikedView() {
+      fullPlayerView.style.display = "none";
+      likedSongsView.style.display = "flex";
+      if (!likedLoaded) {
+        loadLikedSongs();
+      }
+    }
+
+    function openFullView() {
+      likedSongsView.style.display = "none";
+      fullPlayerView.style.display = "flex";
+    }
+
+    document.getElementById("openLikedBtn").onclick = openLikedView;
+    document.getElementById("backToFullBtn").onclick = openFullView;
+    document.getElementById("miniExpandArea").onclick = openFullView;
+
+    // PKCE Auth Helpers
+    function generateRandomString(length) {
+      const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+      const values = crypto.getRandomValues(new Uint8Array(length));
+      return values.reduce((acc, x) => acc + chars[x % chars.length], "");
+    }
+
+    async function sha256(plain) {
+      return window.crypto.subtle.digest("SHA-256", new TextEncoder().encode(plain));
+    }
+
+    function base64encode(input) {
+      return btoa(String.fromCharCode(...new Uint8Array(input)))
+        .replace(/=/g, "")
+        .replace(/\+/g, "-")
+        .replace(/\//g, "_");
+    }
+
+    async function redirectToSpotifyLogin() {
+      if (CLIENT_ID === "YOUR_CLIENT_ID_HERE") {
+        alert("Please edit index.html and paste your Spotify Client ID first!");
+        return;
+      }
+      localStorage.removeItem("sp_token");
+      const codeVerifier = generateRandomString(64);
+      const codeChallenge = base64encode(await sha256(codeVerifier));
+      localStorage.setItem("code_verifier", codeVerifier);
+
+      const authUrl = new URL("https://accounts.spotify.com/authorize");
+      authUrl.search = new URLSearchParams({
+        response_type: "code",
+        client_id: CLIENT_ID,
+        scope: SCOPES,
+        code_challenge_method: "S256",
+        code_challenge: codeChallenge,
+        redirect_uri: REDIRECT_URI,
+        show_dialog: "true"
+      }).toString();
+
+      window.location.href = authUrl.toString();
+    }
+
+    async function exchangeToken(code) {
+      const response = await fetch("https://accounts.spotify.com/api/token", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          client_id: CLIENT_ID,
+          grant_type: "authorization_code",
+          code: code,
+          redirect_uri: REDIRECT_URI,
+          code_verifier: localStorage.getItem("code_verifier"),
+        }),
+      });
+      const data = await response.json();
+      if (data.access_token) {
+        localStorage.setItem("sp_token", data.access_token);
+        window.history.replaceState({}, document.title, REDIRECT_URI);
+        return data.access_token;
+      }
+      return null;
+    }
+
+    document.getElementById("authBtn").onclick = redirectToSpotifyLogin;
+
+    // App State
+    let accessToken = null;
+    let player = null;
+    let deviceId = null;
+    let durationMs = 0;
+    let positionMs = 0;
+    let isPaused = true;
+    let isShuffled = false;
+
+    async function spFetch(endpoint, options = {}) {
+      if (!accessToken) return { error: { status: 401, message: "Not connected" } };
+      try {
+        const res = await fetch("https://api.spotify.com/v1" + endpoint, {
+          ...options,
+          headers: {
+            Authorization: "Bearer " + accessToken,
+            ...(options.body ? { "Content-Type": "application/json" } : {}),
+            ...(options.headers || {})
+          }
+        });
+        if (res.status === 204) return {};
+        const json = await res.json();
+        if (!res.ok) {
+          return { error: { status: res.status, message: json.error?.message || "API Error" } };
+        }
+        return json;
+      } catch (err) {
+        return { error: { status: 0, message: err.message } };
+      }
+    }
+
+    function formatTime(ms) {
+      const totalSec = Math.floor(ms / 1000);
+      const min = Math.floor(totalSec / 60);
+      const sec = totalSec % 60;
+      return `${min}:${sec < 10 ? "0" : ""}${sec}`;
+    }
+
+    setInterval(() => {
+      if (!isPaused && durationMs > 0) {
+        positionMs = Math.min(positionMs + 500, durationMs);
+        document.getElementById("progressFill").style.width = (positionMs / durationMs) * 100 + "%";
+        document.getElementById("curTime").textContent = formatTime(positionMs);
+      }
+    }, 500);
+
+    // Load Liked Songs
+    async function loadLikedSongs() {
+      const trackListEl = document.getElementById("trackList");
+      if (!accessToken) {
+        trackListEl.innerHTML = `<div style="font-size:13px;color:#165b85;padding:12px;text-align:center;">Tap <b>▲ Player</b> and then <b>Connect</b> first!</div>`;
+        return;
+      }
+
+      trackListEl.innerHTML = `<div style="font-size:12px;color:#165b85;padding:12px;text-align:center;">Loading Liked Songs...</div>`;
+      const data = await spFetch("/me/tracks?limit=50");
+      if (!data || data.error) {
+        trackListEl.innerHTML = `<div style="font-size:12px;color:#900;padding:12px;text-align:center;">Could not load Liked Songs (${data?.error?.message || "Error"}). Tap <b>▲ Player</b> then <b>Connect</b> to refresh permissions.</div>`;
+        return;
+      }
+
+      const tracks = (data.items || []).map(entry => entry.item || entry.track).filter(t => t && t.uri);
+      likedLoaded = true;
+      document.getElementById("likedSubtitle").textContent = `${tracks.length} songs • Tap any song to play`;
+
+      trackListEl.innerHTML = "";
+      if (!tracks.length) {
+        trackListEl.innerHTML = `<div style="font-size:13px;color:#165b85;padding:12px;text-align:center;">No Liked Songs found.</div>`;
+        return;
+      }
+
+      tracks.forEach((tr, idx) => {
+        const row = document.createElement("div");
+        row.className = "track-row";
+        const thumb = tr.album?.images?.length
+          ? tr.album.images[tr.album.images.length - 1].url
+          : "";
+        row.innerHTML = `
+          <div class="track-num">${idx + 1}</div>
+          ${thumb ? `<img class="track-thumb" src="${thumb}" alt="">` : `<div class="track-thumb"></div>`}
+          <div class="track-details">
+            <div class="t-name">${tr.name}</div>
+            <div class="t-art">${(tr.artists || []).map(a => a.name).join(", ")}</div>
+          </div>
+          <div class="t-dur">${formatTime(tr.duration_ms || 0)}</div>
+        `;
+        row.onclick = () => {
+          const uris = tracks.slice(idx).map(t => t.uri);
+          startPlayback({ uris });
+        };
+        trackListEl.appendChild(row);
+      });
+    }
+
+    document.getElementById("refreshLikedBtn").onclick = () => {
+      likedLoaded = false;
+      loadLikedSongs();
+    };
+
+    // Start Playback
+    async function startPlayback(bodyObj) {
+      if (!deviceId) {
+        alert("Player is still connecting—wait until the green dot turns on!");
+        return;
+      }
+      if (player) player.activateElement();
+      const res = await spFetch(`/me/player/play?device_id=${deviceId}`, {
+        method: "PUT",
+        body: JSON.stringify(bodyObj)
+      });
+      if (res && res.error) {
+        alert("Playback error: " + res.error.message);
+      }
+    }
+
+    // Shared Control Actions
+    function handlePlayPause() {
+      if (!player) return;
+      player.activateElement();
+      player.togglePlay();
+    }
+    function handlePrev() {
+      if (player) player.previousTrack();
+    }
+    function handleNext() {
+      if (player) player.nextTrack();
+    }
+    async function handleShuffle() {
+      const nextShuffle = !isShuffled;
+      await spFetch(`/me/player/shuffle?state=${nextShuffle}${deviceId ? `&device_id=${deviceId}` : ""}`, {
+        method: "PUT"
+      });
+      isShuffled = nextShuffle;
+      document.getElementById("shuffleBtnFull").classList.toggle("active-toggle", isShuffled);
+      document.getElementById("shuffleBtnMini").classList.toggle("active-toggle", isShuffled);
+    }
+
+    document.getElementById("playBtnFull").onclick = handlePlayPause;
+    document.getElementById("playBtnMini").onclick = handlePlayPause;
+    document.getElementById("prevBtnFull").onclick = handlePrev;
+    document.getElementById("prevBtnMini").onclick = handlePrev;
+    document.getElementById("nextBtnFull").onclick = handleNext;
+    document.getElementById("nextBtnMini").onclick = handleNext;
+    document.getElementById("shuffleBtnFull").onclick = handleShuffle;
+    document.getElementById("shuffleBtnMini").onclick = handleShuffle;
+
+    // Boot Sequence
+    async function initApp() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const code = urlParams.get("code");
+      if (code) {
+        accessToken = await exchangeToken(code);
+      } else {
+        accessToken = localStorage.getItem("sp_token");
+      }
+
+      if (accessToken) {
+        document.getElementById("authBtn").textContent = "Connected ✓";
+      }
+    }
+
+    initApp();
+
+    // Initialize Spotify Web Playback SDK
+    window.onSpotifyWebPlaybackSDKReady = async () => {
+      if (!accessToken) {
+        const urlParams = new URLSearchParams(window.location.search);
+        const code = urlParams.get("code");
+        accessToken = code ? await exchangeToken(code) : localStorage.getItem("sp_token");
+      }
+      if (!accessToken) return;
+
+      player = new Spotify.Player({
+        name: "Frutiger Aero Player",
+        getOAuthToken: cb => cb(accessToken),
+        volume: 0.85
+      });
+
+      player.addListener("ready", ({ device_id }) => {
+        deviceId = device_id;
+        document.getElementById("statusDotFull").classList.add("connected");
+        document.getElementById("authBtn").textContent = "Connected ✓";
+        if (document.getElementById("trackTitleFull").textContent === "Not Playing") {
+          document.getElementById("trackTitleFull").textContent = "Aero Player Ready";
+          document.getElementById("trackArtistFull").textContent = "Tap ✕ to open Liked Songs";
+        }
+      });
+
+      player.addListener("authentication_error", () => {
+        localStorage.removeItem("sp_token");
+        document.getElementById("statusDotFull").classList.remove("connected");
+        document.getElementById("authBtn").textContent = "Connect";
+      });
+
+      player.addListener("player_state_changed", state => {
+        if (!state) return;
+        document.getElementById("statusDotFull").classList.add("connected");
+        const track = state.track_window.current_track;
+        const artistsStr = track.artists.map(a => a.name).join(", ");
+
+        document.getElementById("trackTitleFull").textContent = track.name;
+        document.getElementById("trackArtistFull").textContent = artistsStr;
+        document.getElementById("trackTitleMini").textContent = track.name;
+        document.getElementById("trackArtistMini").textContent = artistsStr;
+
+        const imgUrl = track.album.images?.[0]?.url || "";
+        const imgFull = document.getElementById("albumArtFull");
+        const phFull = document.getElementById("albumPlaceholderFull");
+        const imgMini = document.getElementById("albumArtMini");
+        const phMini = document.getElementById("albumPlaceholderMini");
+
+        if (imgUrl) {
+          imgFull.src = imgUrl;
+          imgFull.style.display = "block";
+          phFull.style.display = "none";
+
+          imgMini.src = imgUrl;
+          imgMini.style.display = "block";
+          phMini.style.display = "none";
+        }
+
+        isPaused = state.paused;
+        positionMs = state.position;
+        durationMs = state.duration;
+        isShuffled = state.shuffle;
+
+        const playIcon = isPaused ? "▶" : "⏸";
+        document.getElementById("playBtnFull").textContent = playIcon;
+        document.getElementById("playBtnMini").textContent = playIcon;
+        document.getElementById("durTime").textContent = formatTime(durationMs);
+
+        document.getElementById("shuffleBtnFull").classList.toggle("active-toggle", isShuffled);
+        document.getElementById("shuffleBtnMini").classList.toggle("active-toggle", isShuffled);
+
+        if ("mediaSession" in navigator) {
+          navigator.mediaSession.metadata = new MediaMetadata({
+            title: track.name,
+            artist: artistsStr,
+            album: track.album.name,
+            artwork: imgUrl ? [{ src: imgUrl, sizes: "512x512", type: "image/jpeg" }] : []
+          });
+          navigator.mediaSession.setActionHandler("play", () => player.resume());
+          navigator.mediaSession.setActionHandler("pause", () => player.pause());
+          navigator.mediaSession.setActionHandler("previoustrack", () => player.previousTrack());
+          navigator.mediaSession.setActionHandler("nexttrack", () => player.nextTrack());
+        }
+      });
+
+      document.getElementById("progressBar").onclick = (e) => {
+        if (!durationMs) return;
+        const rect = e.currentTarget.getBoundingClientRect();
+        const ratio = (e.clientX - rect.left) / rect.width;
+        player.seek(Math.floor(ratio * durationMs));
+      };
+
+      player.connect();
+    };
+  </script>
+</body>
+</html>
