@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>AeroPlayer 2007</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;font-family:"Segoe UI",-apple-system,sans-serif;-webkit-tap-highlight-color:transparent;user-select:none}
+html,body{height:100dvh;width:100vw;overflow:hidden;background:linear-gradient(180deg,#0066b2 0%,#2bb3ff 42%,#7ed957 82%,#3fa34d 100%);color:#072d47}
+body{display:flex;flex-direction:column;justify-content:center;align-items:center;padding:calc(env(safe-area-inset-top) + 10px) 14px calc(env(safe-area-inset-bottom) + 10px)}
+
+/* Sunbeams & Interactive Bubbles */
+.sky-glow{position:fixed;top:-20%;left:-10%;width:120%;height:70%;background:radial-gradient(ellipse at 50% 0%,rgba(255,255,255,.55),transparent 70%);pointer-events:none;z-index:0;animation:pulseSky 6s ease-in-out infinite alternate}
+@keyframes pulseSky{0%{opacity:.6;transform:scale(1)}100%{opacity:1;transform:scale(1.06)}}
+.bubbles{position:fixed;inset:0;pointer-events:none;z-index:1;overflow:hidden}
+.bubble{position:absolute;bottom:-90px;border-radius:50%;pointer-events:auto;cursor:pointer;background:radial-gradient(circle at 30% 30%,rgba(255,255,255,.95),rgba(255,255,255,.2) 58%,rgba(0,220,255,.45));box-shadow:inset 0 0 10px rgba(255,255,255,.9),0 4px 12px rgba(0,70,130,.22);animation:rise linear forwards}
+.bubble.gold{background:radial-gradient(circle at 30% 30%,#fff9d6,rgba(255,215,0,.35) 58%,rgba(255,140,0,.6));box-shadow:inset 0 0 12px #fff,0 0 14px rgba(255,200,0,.75)}
+@keyframes rise{0%{transform:translateY(0) scale(.9);opacity:0}12%{opacity:.9}100%{transform:translateY(-118dvh) scale(1.15);opacity:0}}
+.droplet{position:fixed;width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.9);box-shadow:0 0 6px #7ce8ff;pointer-events:none;z-index:50;animation:splash .45s ease-out forwards}
+@keyframes splash{to{transform:translate(var(--dx),var(--dy)) scale(0);opacity:0}}
+
+/* Global Effects Layer */
+.fx-layer{position:fixed;inset:0;pointer-events:none;z-index:40;overflow:hidden}
+.swim-entity{position:fixed;font-size:44px;filter:drop-shadow(0 6px 10px rgba(0,50,100,.35));animation:swimAcross 6.5s linear forwards}
+@keyframes swimAcross{0%{left:-80px;transform:translateY(0) scaleX(1)}50%{transform:translateY(-28px) scaleX(1)}100%{left:110vw;transform:translateY(10px) scaleX(1)}}
+.aurora{position:fixed;inset:0;background:linear-gradient(120deg,rgba(0,255,170,.35),rgba(0,180,255,.4),rgba(170,255,80,.35));mix-blend-mode:screen;animation:auroraFade 4.5s ease-in-out forwards}
+@keyframes auroraFade{0%,100%{opacity:0}30%,70%{opacity:1}}
+.star-drop{position:fixed;top:-40px;font-size:26px;animation:starFall 3.2s ease-in forwards}
+@keyframes starFall{to{transform:translateY(110dvh) rotate(360deg);opacity:0}}
+
+/* Announcement Banner */
+.banner{position:fixed;top:calc(env(safe-area-inset-top) + 8px);left:50%;transform:translateX(-50%);z-index:45;width:92%;max-width:440px;background:linear-gradient(180deg,rgba(255,255,255,.92),rgba(205,245,255,.85));backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1.5px solid #fff;border-radius:16px;padding:10px 14px;box-shadow:0 10px 25px rgba(0,50,100,.35);display:none;align-items:center;gap:10px;font-size:13px;font-weight:700;color:#043354;animation:slideDown .35s ease}
+@keyframes slideDown{from{transform:translate(-50%,-30px);opacity:0}to{transform:translate(-50%,0);opacity:1}}
+
+/* Glossy Aero Buttons */
+.btn{cursor:pointer;border:1px solid rgba(255,255,255,.95);border-radius:999px;background:linear-gradient(180deg,#fff 0%,#c7eeff 48%,#7ad4ff 52%,#bcecff 100%);box-shadow:0 3px 8px rgba(0,80,140,.25),inset 0 1px 1px #fff;color:#05385b;font-weight:700;transition:transform .1s}
+.btn:active{transform:scale(.93)}
+.pill{padding:5px 10px;font-size:11px;display:inline-flex;align-items:center;gap:4px}
+.red-x{width:28px;height:28px;border-radius:50%;color:#fff;font-size:13px;background:linear-gradient(180deg,#ff9e9e,#f03e3e 49%,#c92a2a 51%,#ff6b6b);box-shadow:0 3px 8px rgba(160,0,0,.35),inset 0 1px 1px #fff;display:flex;align-items:center;justify-content:center}
+
+/* Main Aero Glass Window */
+.win{position:relative;z-index:10;width:100%;max-width:410px;background:linear-gradient(180deg,rgba(255,255,255,.78),rgba(215,246,255,.62));backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-radius:24px;border:1.5px solid rgba(255,255,255,.95);box-shadow:0 20px 45px rgba(0,50,95,.35),inset 0 1px 2px #fff;padding:16px;overflow:hidden;transition:all .25s ease}
+.win::before{content:"";position:absolute;top:0;left:0;right:0;height:38%;background:linear-gradient(180deg,rgba(255,255,255,.65),rgba(255,255,255,.04));border-radius:22px 22px 50% 50%/22px 22px 16px 16px;pointer-events:none}
+.top-bar{position:relative;z-index:2;display:flex;justify-content:space-between;align-items:center;gap:6px;margin-bottom:12px;flex-wrap:wrap}
+.online-badge{background:rgba(255,255,255,.75);border:1px solid #fff;border-radius:999px;padding:4px 9px;font-size:11px;font-weight:800;color:#084c2e;display:inline-flex;align-items:center;gap:5px;box-shadow:inset 0 1px 1px #fff}
+.pulse-dot{width:8px;height:8px;border-radius:50%;background:#38b000;box-shadow:0 0 6px #52d600;animation:blink 1.6s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* Default Player View */
+.art-box{position:relative;z-index:2;width:205px;height:205px;margin:4px auto 14px;border-radius:18px;padding:8px;background:linear-gradient(145deg,rgba(255,255,255,.92),rgba(180,235,255,.55));border:1px solid #fff;box-shadow:0 12px 24px rgba(0,65,115,.28);transition:transform .3s ease}
+.art-box.playing{transform:scale(1.03);box-shadow:0 14px 30px rgba(0,140,255,.4)}
+.art-box img{width:100%;height:100%;object-fit:cover;border-radius:12px;display:block}
+.meta{position:relative;z-index:2;text-align:center;margin-bottom:12px}
+.t-name{font-size:18px;font-weight:800;color:#032b45;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.t-art{font-size:13px;font-weight:600;color:#155982;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.prog{position:relative;z-index:2;margin-bottom:14px}
+.pbar{width:100%;height:11px;border-radius:999px;background:rgba(255,255,255,.75);border:1px solid #fff;box-shadow:inset 0 2px 4px rgba(0,60,110,.25);overflow:hidden;cursor:pointer}
+.pfill{height:100%;width:0%;border-radius:999px;background:linear-gradient(180deg,#b8ff70,#52d600 50%,#3aa800 51%,#7ae82e);transition:width .25s linear}
+.times{display:flex;justify-content:space-between;font-size:11px;font-weight:700;color:#0e4a70;margin-top:4px}
+.ctrls{position:relative;z-index:2;display:flex;justify-content:center;align-items:center;gap:14px}
+.cbtn{width:44px;height:44px;font-size:16px}
+.cbtn.shuf-on{background:linear-gradient(180deg,#d8ffad,#70e000 49%,#38b000 51%,#9ef01a);color:#fff;text-shadow:0 1px 2px rgba(0,60,0,.5)}
+.orb{width:62px;height:62px;font-size:23px;color:#fff;background:linear-gradient(180deg,#8ce3ff,#1ea7fd 49%,#0077e6 51%,#38c6ff);box-shadow:0 6px 16px rgba(0,110,220,.45),inset 0 2px 3px #fff}
+
+/* Split-Screen Liked Songs View */
+.win.split{max-width:460px;height:86dvh;display:flex;flex-direction:column;padding:12px}
+.liked-wrap{position:relative;z-index:2;flex:1;overflow-y:auto;margin:6px 0 10px;padding-right:4px;display:none;flex-direction:column;gap:7px}
+.win.split .liked-wrap{display:flex}
+.win.split .player-card{display:none}
+.track-row{display:flex;align-items:center;gap:10px;padding:7px 9px;border-radius:14px;background:rgba(255,255,255,.65);border:1px solid rgba(255,255,255,.9);cursor:pointer;transition:transform .12s,background .15s}
+.track-row:active{transform:scale(.98)}
+.track-row.active{background:linear-gradient(90deg,rgba(184,255,112,.75),rgba(130,225,255,.75));border-color:#fff}
+.track-row img{width:42px;height:42px;border-radius:9px;object-fit:cover}
+.tr-info{flex:1;min-width:0}
+.tr-title{font-size:13px;font-weight:800;color:#042c47;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tr-sub{font-size:11px;font-weight:600;color:#175c87;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.load-more{padding:10px;text-align:center;font-size:12px;margin-top:4px}
+
+/* Bottom Horizontal Rectangle Bar (Split Mode) */
+.mini-bar{display:none;position:relative;z-index:2;background:linear-gradient(180deg,rgba(255,255,255,.88),rgba(195,240,255,.8));border:1.5px solid #fff;border-radius:16px;padding:8px 10px;align-items:center;gap:9px;box-shadow:0 6px 16px rgba(0,60,110,.25)}
+.win.split .mini-bar{display:flex}
+.mini-bar img{width:44px;height:44px;border-radius:10px;object-fit:cover;cursor:pointer}
+.mini-meta{flex:1;min-width:0;cursor:pointer}
+.mini-ctrls{display:flex;align-items:center;gap:6px}
+.mbtn{width:34px;height:34px;font-size:13px}
+.morb{width:40px;height:40px;font-size:16px;color:#fff;background:linear-gradient(180deg,#8ce3ff,#1ea7fd 49%,#0077e6 51%,#38c6ff)}
+
+/* Modals & Achievement Toast */
+.modal{position:fixed;inset:0;z-index:60;background:rgba(0,35,70,.45);backdrop-filter:blur(6px);display:none;justify-content:center;align-items:center;padding:16px}
+.modal-box{width:100%;max-width:360px;background:linear-gradient(180deg,rgba(255,255,255,.95),rgba(215,245,255,.9));border:2px solid #fff;border-radius:20px;padding:16px;box-shadow:0 20px 40px rgba(0,40,80,.4);max-height:80dvh;overflow-y:auto}
+.modal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;font-weight:800;font-size:16px}
+.inp{width:100%;padding:8px 12px;border-radius:12px;border:1px solid #8ecae6;background:#fff;font-size:13px;margin-bottom:8px;outline:none}
+.grid-btns{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:8px}
+.ach-item{display:flex;align-items:center;gap:10px;padding:8px;border-radius:12px;background:rgba(255,255,255,.7);margin-bottom:6px;opacity:.5}
+.ach-item.unlocked{opacity:1;background:linear-gradient(90deg,#e9ffdb,#d4f4ff);border:1px solid #fff}
+.toast{position:fixed;bottom:calc(env(safe-area-inset-bottom) + 18px);left:50%;transform:translateX(-50%) translateY(90px);z-index:70;background:linear-gradient(180deg,#ffffff,#d0f2ff);border:2px solid #fff;border-radius:999px;padding:8px 18px;box-shadow:0 10px 25px rgba(0,60,120,.4);display:flex;align-items:center;gap:10px;font-weight:800;font-size:13px;color:#043354;transition:transform .4s cubic-bezier(.18,.89,.32,1.28)}
+.toast.show{transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+<div class="sky-glow"></div>
+<div class="bubbles" id="bubbles"></div>
+<div class="fx-layer" id="fxLayer"></div>
+
+<div class="banner" id="banner"><span style="font-size:18px">📢</span><span id="bannerText" style="flex:1"></span></div>
+
+<div class="win" id="mainWin">
+  <div class="top-bar">
+    <div style="display:flex;align-items:center;gap:5px">
+      <button class="btn pill" id="adminOpen" title="Admin">⚙️</button>
+      <button class="btn pill" id="achOpen" title="Achievements">🏆 <span id="achCount">0/10</span></button>
+      <button class="btn pill" id="sndBtn" title="Sound">🔊</button>
+      <span class="online-badge"><span class="pulse-dot"></span><span id="pubOnline">1 Online</span></span>
+    </div>
+    <div style="display:flex;align-items:center;gap:5px">
+      <button class="btn pill" id="cidOpen" title="Custom Client ID">🔑</button>
+      <button class="btn pill" id="authBtn">Connect</button>
+      <button class="btn red-x" id="toggleView" title="Liked Songs">✕</button>
+    </div>
+  </div>
+
+  <!-- Default Centered Player -->
+  <div class="player-card">
+    <div class="art-box" id="artBox"><img id="artImg" src="https://images.unsplash.com/photo-1518837695005-2083093ee35b?auto=format&fit=crop&w=500&q=80"></div>
+    <div class="meta">
+      <div class="t-name" id="tName">AeroPlayer 2007</div>
+      <div class="t-art" id="tArt">Tap Connect to start</div>
+    </div>
+    <div class="prog">
+      <div class="pbar" id="pBar"><div class="pfill" id="pFill"></div></div>
+      <div class="times"><span id="cTime">0:00</span><span id="dTime">0:00</span></div>
+    </div>
+    <div class="ctrls">
+      <button class="btn cbtn" id="shufBtn" title="Shuffle">🔀</button>
+      <button class="btn cbtn" id="prevBtn">⏮</button>
+      <button class="btn cbtn orb" id="playBtn">▶</button>
+      <button class="btn cbtn" id="nextBtn">⏭</button>
+    </div>
+  </div>
+
+  <!-- Split-Screen Liked Songs List -->
+  <div class="liked-wrap" id="likedList">
+    <div style="text-align:center;font-size:13px;font-weight:700;padding:20px" id="likedStatus">Connect Spotify to view your Liked Songs</div>
+  </div>
+
+  <!-- Horizontal Bottom Player Rectangle (Visible in Split Mode) -->
+  <div class="mini-bar">
+    <img id="mArtImg" src="https://images.unsplash.com/photo-1518837695005-2083093ee35b?auto=format&fit=crop&w=200&q=80">
+    <div class="mini-meta" id="backToCard">
+      <div class="tr-title" id="mName">AeroPlayer 2007</div>
+      <div class="tr-sub" id="mArt">Not Playing</div>
+    </div>
+    <div class="mini-ctrls">
+      <button class="btn mbtn" id="mShuf">🔀</button>
+      <button class="btn mbtn" id="mPrev">⏮</button>
+      <button class="btn mbtn morb" id="mPlay">▶</button>
+      <button class="btn mbtn" id="mNext">⏭</button>
+    </div>
+  </div>
+</div>
+
+<!-- Admin Modal -->
+<div class="modal" id="adminModal">
+  <div class="modal-box">
+    <div class="modal-head"><span>⚙️ Admin Control Panel</span><button class="btn pill" onclick="closeModal('adminModal')">Close</button></div>
+    <div style="background:rgba(255,255,255,.75);padding:8px 12px;border-radius:12px;margin-bottom:10px;font-size:13px;font-weight:800;display:flex;justify-content:space-between">
+      <span>Live Users Online:</span><span id="admOnline" style="color:#2b9348">🟢 1 Online</span>
+    </div>
+    <input class="inp" type="password" id="admPin" placeholder="Enter Firebase Secret PIN">
+    <div style="font-size:12px;font-weight:800;margin:6px 0 4px">📢 Live Global Announcement</div>
+    <input class="inp" id="annInput" placeholder="Type announcement for everyone...">
+    <div style="display:flex;gap:6px;margin-bottom:10px">
+      <button class="btn pill" style="flex:1;justify-content:center" id="sendAnn">Broadcast</button>
+      <button class="btn pill" id="clearAnn">Clear</button>
+    </div>
+    <div style="font-size:12px;font-weight:800;margin:6px 0 4px">✨ Trigger Screen Animations & Events</div>
+    <div class="grid-btns">
+      <button class="btn pill" onclick="triggerFx('koi')">🐟 Koi Fish</button>
+      <button class="btn pill" onclick="triggerFx('dolphin')">🐬 Dolphins</button>
+      <button class="btn pill" onclick="triggerFx('turtle')">🐢 Sea Turtles</button>
+      <button class="btn pill" onclick="triggerFx('burst')">💥 Bubble Burst</button>
+      <button class="btn pill" onclick="triggerFx('aurora')">🌈 Aurora Wave</button>
+      <button class="btn pill" onclick="triggerFx('stars')">✨ Starlight Drop</button>
+      <button class="btn pill" style="grid-column:span 2;justify-content:center;background:linear-gradient(180deg,#fff3b0,#ffd166)" onclick="triggerEvent('frenzy')">🎉 Start 30s Bubble Frenzy Event</button>
+    </div>
+    <div id="admMsg" style="font-size:11px;font-weight:700;margin-top:8px;text-align:center;color:#05385b"></div>
+  </div>
+</div>
+
+<!-- Achievements Modal -->
+<div class="modal" id="achModal">
+  <div class="modal-box">
+    <div class="modal-head"><span>🏆 Achievements</span><button class="btn pill" onclick="closeModal('achModal')">Close</button></div>
+    <div id="achList"></div>
+  </div>
+</div>
+
+<!-- Custom Client ID Modal -->
+<div class="modal" id="cidModal">
+  <div class="modal-box">
+    <div class="modal-head"><span>🔑 Spotify Client ID</span><button class="btn pill" onclick="closeModal('cidModal')">Close</button></div>
+    <p style="font-size:12px;margin-bottom:8px;line-height:1.4">Optional: Paste your own Spotify Developer Client ID if the default 5-user limit is full.</p>
+    <input class="inp" id="cidInput" placeholder="Leave blank to use default ID">
+    <button class="btn pill" style="width:100%;justify-content:center;padding:8px" id="saveCid">Save Client ID</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"><span style="font-size:20px">🏆</span><span id="toastTxt">Achievement Unlocked!</span></div>
+
+<script src="https://sdk.scdn.co/spotify-player.js"></script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/13.4.0/firebase-app.js";
+import { getDatabase, ref, set, onValue, onDisconnect, push } from "https://www.gstatic.com/firebasejs/13.4.0/firebase-database.js";
+
+const DEFAULT_CLIENT_ID = "6b7691b1ebbd48d7a040e136d12a9ee4";
+const firebaseConfig = {
+  apiKey: "AIzaSyC3Fx-Klgg3YbToXz5dgcrg6V6tuziw5-0",
+  authDomain: "aero-spotify.firebaseapp.com",
+  databaseURL: "https://aero-spotify-default-rtdb.firebaseio.com",
+  projectId: "aero-spotify",
+  storageBucket: "aero-spotify.firebasestorage.app",
+  messagingSenderId: "884849174413",
+  appId: "1:884849174413:web:a272ec5bf51410cf9ebfc4"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+// Web Audio Synthesizer for Aero SFX
+let muted = false, actx;
+function sfx(type) {
+  if (muted) return;
+  try {
+    actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+    if (actx.state === "suspended") actx.resume();
+    const o = actx.createOscillator(), g = actx.createGain();
+    o.connect(g); g.connect(actx.destination);
+    const t = actx.currentTime;
+    if (type === "pop") {
+      o.type = "sine"; o.frequency.setValueAtTime(420, t); o.frequency.exponentialRampToValueAtTime(980, t + 0.09);
+      g.gain.setValueAtTime(0.18, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
+      o.start(t); o.stop(t + 0.11);
+    } else if (type === "click") {
+      o.type = "triangle"; o.frequency.setValueAtTime(750, t); o.frequency.exponentialRampToValueAtTime(520, t + 0.05);
+      g.gain.setValueAtTime(0.1, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.06);
+      o.start(t); o.stop(t + 0.06);
+    } else if (type === "ach") {
+      [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => {
+        const osc = actx.createOscillator(), gn = actx.createGain();
+        osc.type = "sine"; osc.frequency.setValueAtTime(f, t + i * 0.09);
+        gn.gain.setValueAtTime(0.12, t + i * 0.09); gn.gain.exponentialRampToValueAtTime(0.001, t + i * 0.09 + 0.35);
+        osc.connect(gn); gn.connect(actx.destination); osc.start(t + i * 0.09); osc.stop(t + i * 0.09 + 0.36);
+      });
+    }
+  } catch (e) {}
+}
+
+document.getElementById("sndBtn").onclick = () => {
+  muted = !muted;
+  document.getElementById("sndBtn").textContent = muted ? "🔇" : "🔊";
+  if (!muted) { sfx("click"); unlock("sound"); }
+};
+
+// Achievements System
+const ACHS = [
+  { id: "conn", name: "First Splash", desc: "Connect your Spotify account" },
+  { id: "pop10", name: "Bubble Popper", desc: "Pop 10 floating bubbles" },
+  { id: "pop50", name: "Bubble Maniac", desc: "Pop 50 floating bubbles" },
+  { id: "shuf", name: "Aqua Shuffler", desc: "Toggle Shuffle mode" },
+  { id: "split", name: "Split Vision", desc: "Open your Liked Songs view" },
+  { id: "deep", name: "Deep Diver", desc: "Load more than 50 Liked Songs" },
+  { id: "skip", name: "Wave Skipper", desc: "Skip to the next track" },
+  { id: "sound", name: "Aero Chimes", desc: "Toggle Aero sound effects" },
+  { id: "live", name: "Event Witness", desc: "Experience a live Admin animation" },
+  { id: "night", name: "Midnight Swim", desc: "Use AeroPlayer at night" }
+];
+let unlocked = JSON.parse(localStorage.getItem("aero_achs") || "{}");
+let popCount = parseInt(localStorage.getItem("aero_pops") || "0");
+
+function renderAchs() {
+  const keys = Object.keys(unlocked);
+  document.getElementById("achCount").textContent = `${keys.length}/${ACHS.length}`;
+  document.getElementById("achList").innerHTML = ACHS.map(a =>
+    `<div class="ach-item ${unlocked[a.id] ? "unlocked" : ""}"><span style="font-size:20px">${unlocked[a.id] ? "🏆" : "🔒"}</span><div><div style="font-size:13px;font-weight:800">${a.name}</div><div style="font-size:11px">${a.desc}</div></div></div>`
+  ).join("");
+}
+function unlock(id) {
+  if (unlocked[id]) return;
+  const item = ACHS.find(a => a.id === id);
+  if (!item) return;
+  unlocked[id] = true;
+  localStorage.setItem("aero_achs", JSON.stringify(unlocked));
+  renderAchs();
+  sfx("ach");
+  document.getElementById("toastTxt").textContent = item.name;
+  const el = document.getElementById("toast");
+  el.classList.add("show");
+  setTimeout(() => el.classList.remove("show"), 3200);
+}
+renderAchs();
+if (new Date().getHours() >= 21 || new Date().getHours() < 5) unlock("night");
+
+// Interactive Poppable Bubbles & Frenzy Mode
+let frenzy = false;
+function spawnBubble() {
+  const b = document.createElement("div");
+  b.className = "bubble" + (frenzy ? " gold" : "");
+  const sz = Math.random() * 38 + 22;
+  b.style.width = sz + "px";
+  b.style.height = sz + "px";
+  b.style.left = Math.random() * 92 + "vw";
+  b.style.animationDuration = (frenzy ? Math.random() * 4 + 4 : Math.random() * 7 + 7) + "s";
+  const pop = (e) => {
+    e.stopPropagation();
+    sfx("pop");
+    const r = b.getBoundingClientRect();
+    for (let i = 0; i < 6; i++) {
+      const d = document.createElement("div");
+      d.className = "droplet";
+      d.style.left = (r.left + r.width / 2) + "px";
+      d.style.top = (r.top + r.height / 2) + "px";
+      const ang = (Math.PI * 2 * i) / 6;
+      d.style.setProperty("--dx", Math.cos(ang) * 32 + "px");
+      d.style.setProperty("--dy", Math.sin(ang) * 32 + "px");
+      document.body.appendChild(d);
+      setTimeout(() => d.remove(), 460);
+    }
+    b.remove();
+    popCount++;
+    localStorage.setItem("aero_pops", popCount);
+    if (popCount >= 10) unlock("pop10");
+    if (popCount >= 50) unlock("pop50");
+  };
+  b.addEventListener("pointerdown", pop);
+  document.getElementById("bubbles").appendChild(b);
+  setTimeout(() => b.remove(), 14500);
+}
+setInterval(spawnBubble, 950);
+
+// Firebase Presence (Live Users Online Counter)
+const connRef = ref(db, ".info/connected");
+const myRef = push(ref(db, "presence"));
+onValue(connRef, (snap) => {
+  if (snap.val() === true) {
+    onDisconnect(myRef).remove();
+    set(myRef, true);
+  }
+});
+onValue(ref(db, "presence"), (snap) => {
+  const count = snap.exists() ? Object.keys(snap.val()).length : 1;
+  const label = `${count} Online`;
+  document.getElementById("pubOnline").textContent = label;
+  document.getElementById("admOnline").textContent = `🟢 ${label}`;
+});
+
+// Firebase Live Announcements, Effects & Events
+onValue(ref(db, "announcement"), (snap) => {
+  const val = snap.val();
+  const bar = document.getElementById("banner");
+  if (val && val.text) {
+    document.getElementById("bannerText").textContent = val.text;
+    bar.style.display = "flex";
+  } else {
+    bar.style.display = "none";
+  }
+});
+
+let lastFxId = null;
+onValue(ref(db, "effect"), (snap) => {
+  const val = snap.val();
+  if (!val || val.id === lastFxId) return;
+  if (lastFxId !== null) { playFx(val.type); unlock("live"); }
+  lastFxId = val.id;
+});
+
+let lastEvId = null;
+onValue(ref(db, "event"), (snap) => {
+  const val = snap.val();
+  if (!val || val.id === lastEvId) return;
+  if (lastEvId !== null && val.type === "frenzy") {
+    unlock("live");
+    frenzy = true;
+    const iv = setInterval(spawnBubble, 260);
+    setTimeout(() => { frenzy = false; clearInterval(iv); }, 30000);
+  }
+  lastEvId = val.id;
+});
+
+function playFx(type) {
+  const layer = document.getElementById("fxLayer");
+  if (type === "koi" || type === "dolphin" || type === "turtle") {
+    const emoji = type === "koi" ? "🐟" : type === "dolphin" ? "🐬" : "🐢";
+    for (let i = 0; i < 4; i++) {
+      setTimeout(() => {
+        const el = document.createElement("div");
+        el.className = "swim-entity";
+        el.textContent = emoji;
+        el.style.top = (18 + Math.random() * 62) + "dvh";
+        layer.appendChild(el);
+        setTimeout(() => el.remove(), 6600);
+      }, i * 550);
+    }
+  } else if (type === "burst") {
+    for (let i = 0; i < 22; i++) setTimeout(spawnBubble, i * 60);
+  } else if (type === "aurora") {
+    const el = document.createElement("div");
+    el.className = "aurora";
+    layer.appendChild(el);
+    setTimeout(() => el.remove(), 4600);
+  } else if (type === "stars") {
+    for (let i = 0; i < 20; i++) {
+      setTimeout(() => {
+        const el = document.createElement("div");
+        el.className = "star-drop";
+        el.textContent = "✨";
+        el.style.left = Math.random() * 95 + "vw";
+        layer.appendChild(el);
+        setTimeout(() => el.remove(), 3300);
+      }, i * 120);
+    }
+  }
+}
+
+// Admin Write Actions
+window.triggerFx = async (type) => {
+  const pin = document.getElementById("admPin").value.trim();
+  try {
+    await set(ref(db, "effect"), { type, id: Date.now(), pin });
+    document.getElementById("admMsg").textContent = "Effect sent to everyone!";
+    playFx(type);
+  } catch (e) { document.getElementById("admMsg").textContent = "Blocked: Check Secret PIN"; }
+};
+window.triggerEvent = async (type) => {
+  const pin = document.getElementById("admPin").value.trim();
+  try {
+    await set(ref(db, "event"), { type, id: Date.now(), pin });
+    document.getElementById("admMsg").textContent = "30s Bubble Frenzy started!";
+    frenzy = true;
+    const iv = setInterval(spawnBubble, 260);
+    setTimeout(() => { frenzy = false; clearInterval(iv); }, 30000);
+  } catch (e) { document.getElementById("admMsg").textContent = "Blocked: Check Secret PIN"; }
+};
+document.getElementById("sendAnn").onclick = async () => {
+  const pin = document.getElementById("admPin").value.trim();
+  const text = document.getElementById("annInput").value.trim();
+  try {
+    await set(ref(db, "announcement"), { text, pin });
+    document.getElementById("admMsg").textContent = "Announcement live!";
+  } catch (e) { document.getElementById("admMsg").textContent = "Blocked: Check Secret PIN"; }
+};
+document.getElementById("clearAnn").onclick = async () => {
+  const pin = document.getElementById("admPin").value.trim();
+  try {
+    await set(ref(db, "announcement"), { text: "", pin });
+    document.getElementById("admMsg").textContent = "Announcement cleared.";
+  } catch (e) { document.getElementById("admMsg").textContent = "Blocked: Check Secret PIN"; }
+};
+
+// Modals & Split View Controls
+window.closeModal = (id) => { sfx("click"); document.getElementById(id).style.display = "none"; };
+document.getElementById("adminOpen").onclick = () => { sfx("click"); document.getElementById("adminModal").style.display = "flex"; };
+document.getElementById("achOpen").onclick = () => { sfx("click"); document.getElementById("achModal").style.display = "flex"; };
+document.getElementById("cidOpen").onclick = () => {
+  sfx("click");
+  document.getElementById("cidInput").value = localStorage.getItem("custom_cid") || "";
+  document.getElementById("cidModal").style.display = "flex";
+};
+document.getElementById("saveCid").onclick = () => {
+  const v = document.getElementById("cidInput").value.trim();
+  if (v) localStorage.setItem("custom_cid", v); else localStorage.removeItem("custom_cid");
+  closeModal("cidModal");
+};
+
+const win = document.getElementById("mainWin"), tog = document.getElementById("toggleView");
+function setSplit(open) {
+  sfx("click");
+  win.classList.toggle("split", open);
+  tog.textContent = open ? "▲" : "✕";
+  if (open) unlock("split");
+}
+tog.onclick = () => setSplit(!win.classList.contains("split"));
+document.getElementById("backToCard").onclick = () => setSplit(false);
+document.getElementById("mArtImg").onclick = () => setSplit(false);
+
+// Spotify PKCE Auth & Playback SDK
+const getClientId = () => localStorage.getItem("custom_cid") || DEFAULT_CLIENT_ID;
+const REDIRECT = location.origin + location.pathname;
+const SCOPES = "streaming user-read-email user-read-private user-modify-playback-state user-read-playback-state user-library-read";
+
+const rand = l => Array.from(crypto.getRandomValues(new Uint8Array(l)), x => "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"[x % 62]).join("");
+const b64 = i => btoa(String.fromCharCode(...new Uint8Array(i))).replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
+
+document.getElementById("authBtn").onclick = async () => {
+  sfx("click");
+  const v = rand(64), h = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(v));
+  localStorage.setItem("sp_cv", v);
+  location.href = "https://accounts.spotify.com/authorize?" + new URLSearchParams({
+    response_type: "code", client_id: getClientId(), scope: SCOPES,
+    code_challenge_method: "S256", code_challenge: b64(h), redirect_uri: REDIRECT, show_dialog: "true"
+  });
+};
+
+async function exchangeCode(c) {
+  const r = await fetch("https://accounts.spotify.com/api/token", {
+    method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      client_id: getClientId(), grant_type: "authorization_code", code: c,
+      redirect_uri: REDIRECT, code_verifier: localStorage.getItem("sp_cv")
+    })
+  });
+  const d = await r.json();
+  if (d.access_token) {
+    localStorage.setItem("sp_tk", d.access_token);
+    history.replaceState({}, document.title, REDIRECT);
+    return d.access_token;
+  }
+  return null;
+}
+
+let token = null, player = null, devId = null, dur = 0, pos = 0, paused = true, shuf = false;
+let likedTracks = [], likedOffset = 0, likedTotal = 0;
+
+const fmt = m => { const s = Math.floor(m / 1000); return Math.floor(s / 60) + ":" + (s % 60 < 10 ? "0" : "") + (s % 60); };
+setInterval(() => {
+  if (!paused && dur > 0) {
+    pos = Math.min(pos + 500, dur);
+    document.getElementById("pFill").style.width = (pos / dur) * 100 + "%";
+    document.getElementById("cTime").textContent = fmt(pos);
+  }
+}, 500);
+
+async function loadLiked(append = false) {
+  if (!token) return;
+  const list = document.getElementById("likedList");
+  if (!append) { likedOffset = 0; likedTracks = []; list.innerHTML = "<div style='text-align:center;padding:16px;font-weight:700'>Loading Liked Songs...</div>"; }
+  const r = await fetch(`https://api.spotify.com/v1/me/tracks?limit=50&offset=${likedOffset}`, { headers: { Authorization: `Bearer ${token}` } });
+  if (!r.ok) { list.innerHTML = "<div style='text-align:center;padding:16px;font-weight:700'>Tap Connect to load Liked Songs</div>"; return; }
+  const d = await r.json();
+  likedTotal = d.total;
+  likedOffset += d.items.length;
+  d.items.forEach(it => { if (it.track) likedTracks.push(it.track); });
+  if (likedTracks.length > 50) unlock("deep");
+  renderLiked();
+}
+
+function renderLiked() {
+  const list = document.getElementById("likedList");
+  list.innerHTML = likedTracks.map((tr, idx) =>
+    `<div class="track-row" data-idx="${idx}"><img src="${tr.album.images?.[2]?.url || tr.album.images?.[0]?.url || ""}"><div class="tr-info"><div class="tr-title">${tr.name}</div><div class="tr-sub">${tr.artists.map(a => a.name).join(", ")}</div></div></div>`
+  ).join("");
+  if (likedTracks.length < likedTotal) {
+    const btn = document.createElement("button");
+    btn.className = "btn load-more";
+    btn.textContent = `Load More (${likedTotal - likedTracks.length} left)`;
+    btn.onclick = () => { sfx("click"); loadLiked(true); };
+    list.appendChild(btn);
+  }
+  list.querySelectorAll(".track-row").forEach(row => {
+    row.onclick = async () => {
+      sfx("click");
+      if (player) player.activateElement();
+      const idx = parseInt(row.dataset.idx);
+      const uris = likedTracks.slice(idx, idx + 60).map(t => t.uri);
+      const q = devId ? `?device_id=${devId}` : "";
+      await fetch(`https://api.spotify.com/v1/me/player/play${q}`, {
+        method: "PUT", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ uris })
+      });
+    };
+  });
+}
+
+async function toggleShuffle() {
+  sfx("click");
+  if (!token) return;
+  shuf = !shuf;
+  [document.getElementById("shufBtn"), document.getElementById("mShuf")].forEach(b => b.classList.toggle("shuf-on", shuf));
+  unlock("shuf");
+  await fetch(`https://api.spotify.com/v1/me/player/shuffle?state=${shuf}`, { method: "PUT", headers: { Authorization: `Bearer ${token}` } });
+}
+
+window.onSpotifyWebPlaybackSDKReady = async () => {
+  const code = new URLSearchParams(location.search).get("code");
+  token = code ? await exchangeCode(code) : localStorage.getItem("sp_tk");
+  if (!token) return;
+  document.getElementById("authBtn").textContent = "Connected ✓";
+  unlock("conn");
+  loadLiked(false);
+
+  player = new Spotify.Player({ name: "Frutiger Aero Player", getOAuthToken: cb => cb(token), volume: 0.9 });
+  player.addListener("ready", ({ device_id }) => {
+    devId = device_id;
+    document.getElementById("tName").textContent = "AeroPlayer Ready!";
+    document.getElementById("tArt").textContent = "Pick a song or connect in Spotify";
+  });
+  player.addListener("player_state_changed", s => {
+    if (!s) return;
+    const tr = s.track_window.current_track;
+    const art = tr.album.images?.[0]?.url || "";
+    const artists = tr.artists.map(a => a.name).join(", ");
+    document.getElementById("tName").textContent = tr.name;
+    document.getElementById("tArt").textContent = artists;
+    document.getElementById("artImg").src = art;
+    document.getElementById("mName").textContent = tr.name;
+    document.getElementById("mArt").textContent = artists;
+    document.getElementById("mArtImg").src = art;
+    paused = s.paused; pos = s.position; dur = s.duration; shuf = s.shuffle;
+    document.getElementById("artBox").classList.toggle("playing", !paused);
+    const ic = paused ? "▶" : "⏸";
+    document.getElementById("playBtn").textContent = ic;
+    document.getElementById("mPlay").textContent = ic;
+    document.getElementById("dTime").textContent = fmt(dur);
+    [document.getElementById("shufBtn"), document.getElementById("mShuf")].forEach(b => b.classList.toggle("shuf-on", shuf));
+    if ("mediaSession" in navigator) {
+      navigator.mediaSession.metadata = new MediaMetadata({ title: tr.name, artist: artists, artwork: [{ src: art }] });
+    }
+  });
+
+  const doPlay = () => { sfx("click"); player.activateElement(); player.togglePlay(); };
+  const doPrev = () => { sfx("click"); player.previousTrack(); };
+  const doNext = () => { sfx("click"); unlock("skip"); player.nextTrack(); };
+
+  document.getElementById("playBtn").onclick = doPlay;
+  document.getElementById("mPlay").onclick = doPlay;
+  document.getElementById("prevBtn").onclick = doPrev;
+  document.getElementById("mPrev").onclick = doPrev;
+  document.getElementById("nextBtn").onclick = doNext;
+  document.getElementById("mNext").onclick = doNext;
+  document.getElementById("shufBtn").onclick = toggleShuffle;
+  document.getElementById("mShuf").onclick = toggleShuffle;
+
+  document.getElementById("pBar").onclick = e => {
+    if (!dur) return;
+    const r = (e.clientX - e.currentTarget.getBoundingClientRect().left) / e.currentTarget.offsetWidth;
+    player.seek(Math.floor(r * dur));
+  };
+  player.connect();
+};
+</script>
+</body>
+</html>
